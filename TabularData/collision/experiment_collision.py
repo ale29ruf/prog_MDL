@@ -29,7 +29,7 @@ from data_reduction.representativeness import find_epsilon
 
 #Loading
 print("Loading dataset...")
-df = pd.read_excel('collision.xlsx')
+df = pd.read_excel('/kaggle/input/collision/collision.xlsx')
 print("Dataset loaded.")
 X_initial = df.drop(columns=['N','m','collision']).to_numpy()
 y_initial = df['collision'].to_numpy()
