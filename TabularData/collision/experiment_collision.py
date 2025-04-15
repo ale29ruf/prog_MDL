@@ -103,7 +103,7 @@ parser.add_argument(
 parser.add_argument(
     '--device',
     type=str,
-    default='cpu',
+    default='cuda',
     help='Device to do the computations. Can be cou or cuda (default: cpu)')
 parser.add_argument(
     '--country',
