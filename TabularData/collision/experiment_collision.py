@@ -91,7 +91,7 @@ parser.add_argument(
 parser.add_argument(
     '--n_iter',
     type=int,
-    default=10,
+    default=1,
     metavar='N_iter',
     help='number of iterations of the experiment (default: 10)')
 parser.add_argument(
@@ -123,7 +123,7 @@ args = parser.parse_args([
     '--dropout_prob', '0.50',
     '--total_epochs','600',
     '--initial_epochs','200',
-    '--n_iter','10',
+    '--n_iter','1',
     '--test_size','0.25',
     '--device', 'cuda',
     '--country', 'ESP',
