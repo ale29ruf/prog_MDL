@@ -10,7 +10,7 @@ X = df.drop('collision', axis=1).values
 y = df['collision'].values
 
 # Define alpha values to test
-alpha_values = [0.7, 0.8, 0.9, 0.95, 0.99]
+alpha_values = [0.7] #, 0.8, 0.9, 0.95, 0.99
 
 # Test FCNN with different alpha values
 for alpha in alpha_values:

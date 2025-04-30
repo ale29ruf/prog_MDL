@@ -136,7 +136,8 @@ class FCNN:
                 print(f"Class {unique_labels[c]}: {100*class_accuracy[c]:.2f}%")
 
 
-
+        print(f"Reduced ratio: {100*delta_first/n:.2f}%")
+        
         # Extract final subset
         set_data = train[subset]
         set_label = label[subset]
