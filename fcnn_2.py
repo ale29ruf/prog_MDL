@@ -94,29 +94,29 @@ class FCNN:
             rep = np.full(len(subset), -1)
             dist_rep = np.full(len(subset), -1.0)
 
-            """
-            for i in range(n):
+            ################# VARSIONE STANDARD #################
+            """for i in range(n):
                 for c in range(delta_first, delta_last):
                     idx = subset[c]
                     dst = self._dist(train[i], train[idx])
                     if dst < dist_nearest[i]:
                         dist_nearest[i] = dst
-                        nearest[i] = c
-            """
-                
+                        nearest[i] = c"""
+            ######################################################
+            
+
+            ################# VARSIONE OTTIMIZZATA #################
             for i in range(n):
+                optimize = False
 
                 if nearest[i] != -1:
                     
-
                     # Estrai la porzione da ordinare
                     portion = subset[delta_first:delta_last]
-                    print("Porzione: ", portion)
 
                     # Calcola il punto di riferimento
                     reference_index = subset[nearest[i]]
                     reference_point = train[reference_index]
-                    print("Punto di riferimento: ", reference_point)
 
                     # Crea una lista di tuple (indice, distanza)
                     distances = []
@@ -128,28 +128,42 @@ class FCNN:
                     # Ordina la lista di tuple in base alla distanza
                     distances.sort(key=lambda x: x[1])
 
+                    sorted_portion = [j for j, _ in distances]
                     # Aggiorna la porzione di subset con l'ordine ottenuto
-                    for idx, (j, dist) in enumerate(distances):
-                        subset[delta_first + idx] = j
-                    
+                    print()
+                    print("subset: ", subset[delta_first:delta_last])
 
+                    subset[delta_first:delta_last] = sorted_portion
                     
-                    print("Subset dopo sort")
-                    print(subset)
-                    exit()
+                    print("subset: ", subset[delta_first:delta_last])
+
+                    optimize = True
+
+                print()
+                print("dist_nearest[i]: ", dist_nearest[i])
+
 
                 for c in range(delta_first, delta_last): # itero sui punti di delta_S ordinati
                     idx = subset[c]
                     
 
-                    if nearest[i] != -1 and self._dist(train[subset[nearest[i]]], train[idx]) >= 2*dist_nearest[i]:
+                    if optimize and self._dist(train[subset[nearest[i]]], train[idx]) >= 2*dist_nearest[i]:
+                        # Stampa le distanze dei punti saltati
+                        print(f"Salto i punti da c={c} a c={delta_last-1} (idx={idx} in subset)")
+                        for cc in range(c, delta_last):
+                            if self._dist(train[i], train[idx]) < dist_nearest[i]:
+
+                                print("ERROR")
+                                exit()
                         break
 
                     dst = self._dist(train[i], train[idx])
+                    print("dst: ", dst)
                     if dst < dist_nearest[i]:
+                        print("Distanza aggiornata")
                         dist_nearest[i] = dst
                         nearest[i] = c
-                
+            ######################################################
 
                 c = nearest[i]
                 if mapped_label[i] != mapped_label[subset[c]]:

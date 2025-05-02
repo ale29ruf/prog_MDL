@@ -79,6 +79,8 @@ class FCNN:
         rep = np.full(n, -1)
         dist_rep = np.full(n, -1.0)
 
+        visited = np.full(n, False)
+
         # Initializes the error counter to the total number of points
         error = n
 
@@ -95,23 +97,24 @@ class FCNN:
             dist_rep = np.full(len(subset), -1.0)
 
             for i in range(n):
-                for c in range(delta_first, delta_last):
-                    idx = subset[c]
-                    dst = self._dist(train[i], train[idx])
-                    if dst < dist_nearest[i]:
-                        dist_nearest[i] = dst
-                        nearest[i] = c
+                if not visited[i]:
+                    for c in range(delta_first, delta_last):
+                        idx = subset[c]
+                        dst = self._dist(train[i], train[idx])
+                        if dst < dist_nearest[i]:
+                            dist_nearest[i] = dst
+                            nearest[i] = c
 
 
-                c = nearest[i]
-                if mapped_label[i] != mapped_label[subset[c]]:
+                    c = nearest[i]
+                    if mapped_label[i] != mapped_label[subset[c]]:
 
-                    error += 1
-                    class_errors[mapped_label[i]] += 1
+                        error += 1
+                        class_errors[mapped_label[i]] += 1
 
-                    if rep[c] == -1 or dist_nearest[i] < dist_rep[c]:
-                        rep[c] = i
-                        dist_rep[c] = dist_nearest[i]
+                        if rep[c] == -1 or dist_nearest[i] < dist_rep[c]:
+                            rep[c] = i
+                            dist_rep[c] = dist_nearest[i]
 
 
             # Calculate error rates for each class
@@ -127,6 +130,7 @@ class FCNN:
             for c in range(delta_first):
                 if rep[c] != -1:
                     subset.append(rep[c])
+                    visited[rep[c]] = True
                     delta_last += 1
 
             print(f"subset size = {delta_first}, errors = {error}, accuracy = {100*(1-error/n):.2f}")
@@ -153,33 +157,3 @@ Gli errori per classe possono fluttuare perché:
 - Il punto più vicino (nearest neighbor) per un punto può cambiare quando aggiungiamo nuovi punti al subset
 - Dovremmo mantenere traccia degli errori cumulativi per classe tra le iterazioni
 """
-
-
-# creates a dataset of 10,000 points in 2D space. 
-# Each point has two coordinates (x,y) randomly generated 
-# between -1 and 1
-X = 2*np.random.rand(10000, 2)-1 
-
-# calculates the distance of each point from the origin (0,0)
-l = np.linalg.norm(X, axis=1)
-
-# calculates the radius of the circle that contains 50% of the points
-r = np.sqrt(2/np.pi)
-
-# creates a binary label for each point based on its distance from the origin
-y = np.zeros(len(l))
-y[l>r] = 1
-
-# plots the points in 2D space, colored by their label
-plt.scatter(X[:, 0], X[:, 1], c=y)
-plt.show()
-
-
-fcnn = FCNN()
-subset, subset_labels = fcnn.fit(X, y, alpha = 0.95)
-
-print("Subset shape:", subset.shape)
-print("Subset labels:", subset_labels)
-
-plt.scatter(subset[:, 0], subset[:, 1], c=subset_labels)
-plt.show()

@@ -3,7 +3,7 @@ import numpy as np
 from fcnn import FCNN
 
 # Load the dataset
-df = pd.read_excel('/kaggle/input/collisionfcnn/collision.xlsx')
+df = pd.read_excel('/kaggle/input/collisionfcnn/collision.xlsx') #  TabularData\collision\collision.xlsx
 
 # Separate features and target
 X = df.drop('collision', axis=1).values
