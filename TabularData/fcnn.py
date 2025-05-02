@@ -136,7 +136,7 @@ class FCNN:
                 print(f"Class {unique_labels[c]}: {100*class_accuracy[c]:.2f}%")
 
 
-        print(f"Reduced ratio: {100*delta_first/n:.2f}%")
+        print(f"Reduced ratio: {100*(n-len(subset))/n:.2f}%")
         
         # Extract final subset
         set_data = train[subset]
@@ -153,3 +153,33 @@ Gli errori per classe possono fluttuare perché:
 - Il punto più vicino (nearest neighbor) per un punto può cambiare quando aggiungiamo nuovi punti al subset
 - Dovremmo mantenere traccia degli errori cumulativi per classe tra le iterazioni
 """
+
+
+# creates a dataset of 10,000 points in 2D space. 
+# Each point has two coordinates (x,y) randomly generated 
+# between -1 and 1
+X = 2*np.random.rand(10000, 2)-1 
+
+# calculates the distance of each point from the origin (0,0)
+l = np.linalg.norm(X, axis=1)
+
+# calculates the radius of the circle that contains 50% of the points
+r = np.sqrt(2/np.pi)
+
+# creates a binary label for each point based on its distance from the origin
+y = np.zeros(len(l))
+y[l>r] = 1
+
+# plots the points in 2D space, colored by their label
+plt.scatter(X[:, 0], X[:, 1], c=y)
+plt.show()
+
+
+fcnn = FCNN()
+subset, subset_labels = fcnn.fit(X, y, alpha = 0.95)
+
+print("Subset shape:", subset.shape)
+print("Subset labels:", subset_labels)
+
+plt.scatter(subset[:, 0], subset[:, 1], c=subset_labels)
+plt.show()
