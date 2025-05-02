@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import heapq  # Add heapq import at the top
 
 class FCNN:
     def __init__(self):
@@ -68,7 +69,7 @@ class FCNN:
         subset = list(set(subset))
 
         # Initializes the first and last indices of the subset
-        delta_first = 0
+        delta_first = num_label
         delta_last = len(subset)
 
         # Initializes arrays to store the nearest neighbor and its distance for each point
@@ -85,6 +86,8 @@ class FCNN:
         # Calculate class-wise accuracy
         class_errors = np.zeros(num_label)
 
+
+
         # Loops until all classes have error rate less than (1-alpha)
         while True:
 
@@ -94,25 +97,50 @@ class FCNN:
             rep = np.full(len(subset), -1)
             dist_rep = np.full(len(subset), -1.0)
 
-            for i in range(n):
-                for c in range(delta_first, delta_last):
-                    idx = subset[c]
-                    dst = self._dist(train[i], train[idx])
-                    if dst < dist_nearest[i]:
-                        dist_nearest[i] = dst
-                        nearest[i] = c
+
+            for i in range(delta_first):
+                p = subset[i]
+                
+                # Use a heap to store (distance, index) pairs
+                dst_heap = []
+                for j in range(delta_first, delta_last):
+                    s = subset[j]
+                    dst = self._dist(train[p], train[s])
+                    heapq.heappush(dst_heap, (dst, j))
+                
+                # If you need to access the sorted distances
+                sorted_distances = [heapq.heappop(dst_heap) for _ in range(len(dst_heap))]
 
 
-                c = nearest[i]
-                if mapped_label[i] != mapped_label[subset[c]]:
+                q = nearest[p]
+                dist_pq = dist_nearest[p]
+                modified = False
+
+                for (dst, j) in sorted_distances:
+                    if dst < 2* dist_pq:
+                        nearest[p] = j
+                        dist_nearest[p] = dst
+
+                        dist_qs = self._dist(train[subset[q]], train[subset[j]])
+                        if dist_qs < dist_pq:
+                            nearest[subset[q]] = j
+                            dist_nearest[subset[q]] = dst
+                            modified = True
+
+                if not modified:
+                    nearest[subset[q]] = i
+                    dist_nearest[subset[q]] = dist_pq
+                
+
+                c = nearest[subset[q]]
+                if mapped_label[subset[q]] != mapped_label[subset[c]]:
 
                     error += 1
-                    class_errors[mapped_label[i]] += 1
+                    class_errors[mapped_label[subset[q]]] += 1
 
-                    if rep[c] == -1 or dist_nearest[i] < dist_rep[c]:
-                        rep[c] = i
-                        dist_rep[c] = dist_nearest[i]
-
+                    if rep[c] == -1 or dist_nearest[subset[q]] < dist_rep[c]:
+                        rep[c] = subset[q]
+                        dist_rep[c] = dist_nearest[subset[q]]
 
             # Calculate error rates for each class
             class_error_rates = class_errors / class_counts
@@ -145,11 +173,35 @@ class FCNN:
         self.subset = set_data
         self.subset_labels = set_label
         return set_data, set_label
+
     
 
-"""
-Gli errori per classe possono fluttuare perché:
-- Quando aggiungiamo un nuovo punto al subset, questo può influenzare la classificazione di punti di diverse classi
-- Il punto più vicino (nearest neighbor) per un punto può cambiare quando aggiungiamo nuovi punti al subset
-- Dovremmo mantenere traccia degli errori cumulativi per classe tra le iterazioni
-"""
+
+# creates a dataset of 10,000 points in 2D space. 
+# Each point has two coordinates (x,y) randomly generated 
+# between -1 and 1
+X = 2*np.random.rand(10000, 2)-1 
+
+# calculates the distance of each point from the origin (0,0)
+l = np.linalg.norm(X, axis=1)
+
+# calculates the radius of the circle that contains 50% of the points
+r = np.sqrt(2/np.pi)
+
+# creates a binary label for each point based on its distance from the origin
+y = np.zeros(len(l))
+y[l>r] = 1
+
+# plots the points in 2D space, colored by their label
+plt.scatter(X[:, 0], X[:, 1], c=y)
+plt.show()
+
+
+fcnn = FCNN()
+subset, subset_labels = fcnn.fit(X, y, alpha = 0.95)
+
+print("Subset shape:", subset.shape)
+print("Subset labels:", subset_labels)
+
+plt.scatter(subset[:, 0], subset[:, 1], c=subset_labels)
+plt.show()
