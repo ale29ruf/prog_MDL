@@ -116,6 +116,11 @@ parser.add_argument(
     type=str,
     default='stats.pkl',
     help='Name of the .pkl file where the statistics dictionary should be saved.')
+parser.add_argument(
+    '--filename',
+    type=str,
+    default='stats_fcnn.pkl',
+    help='Name of the .pkl file where the statistics dictionary of fcnn should be saved.')
 
 args = parser.parse_args([
     '--learning_rate','0.001',
@@ -431,7 +436,7 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             if m == 'FCNN':
                 stats_fcnn[iter][alpha_values[idx]] = reduced_ratio
                 save_stats_fcnn(stats_fcnn,args)
-                
+
             save_stats(stats,args)
 
 # Step 3: Train the model with the datasets reduced with FES
