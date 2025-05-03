@@ -127,7 +127,7 @@ args = parser.parse_args([
     '--n_iter','1',
     '--test_size','0.25',
     '--device', 'cuda',
-    '--country', 'IT',
+    '--country', 'ITA',
     '--filename', 'collision_stats.pkl'
 ])
 
@@ -368,11 +368,7 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
     n_f = X_train.shape[1]
     n_c = len(np.unique(y_train))
     for m in all_methods:
-        if m == 'FCNN':
-            percentages_mp = [0.4, 0.5, 0.7, 0.8, 0.9] # alpha values
-        else:
-            percentages_mp = [0.1, 0.3, 0.5, 0.7, 0.9]
-        for p in percentages_mp:
+        for p in percentages:
             print('\n Iteration ',iter)
             print("method =",m,"p =",p)
             #Set the model, criterion and optimizer
