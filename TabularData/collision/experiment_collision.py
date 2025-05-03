@@ -14,6 +14,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+from TabularData.fcnn import FCNN
 from codecarbon import OfflineEmissionsTracker
 from data_reduction.statistic import srs_selection, prd_selection
 from data_reduction.geometric import clc_selection, mms_selection, des_selection
@@ -126,7 +127,7 @@ args = parser.parse_args([
     '--n_iter','1',
     '--test_size','0.25',
     '--device', 'cuda',
-    '--country', 'ESP',
+    '--country', 'IT',
     '--filename', 'collision_stats.pkl'
 ])
 
@@ -172,20 +173,17 @@ class NeuralNetwork(nn.Module):
 # Create the statistics dictionary
 ###################################
 
-all_methods = ['SRS',
+all_methods = ['FCNN',
+               'SRS',
                'CLC',
                'MMS',
                'DES',
-               'NRMD'
+               'NRMD'               
               ]
 percentages = [0.1,
-               0.2,
                0.3,
-               0.4,
                0.5,
-               0.6,
                0.7,
-               0.8,
                0.9
                ]
 metrics = ['time',
@@ -200,7 +198,8 @@ metrics = ['time',
            'rec_avg',
            'f1_0',
            'f1_1',
-           'f1_avg'
+           'f1_avg',
+           'reduced_ratio'
           ]
 
 stats = {}
@@ -315,6 +314,11 @@ def reduce(X,y,perc,method):
          X_red, y_red = nrmd_selection(X,y,perc,'SVD_python')
     return X_red, y_red
 
+def reduce_fcnn(X,y,perc):
+    fcnn = FCNN()
+    X_red, y_red, reduced_ratio = fcnn.fit(X, y, alpha=perc)
+    return X_red, y_red, reduced_ratio
+
 ###################################
 # 7.
 # Functions to perform the
@@ -364,7 +368,11 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
     n_f = X_train.shape[1]
     n_c = len(np.unique(y_train))
     for m in all_methods:
-        for p in percentages:
+        if m == 'FCNN':
+            percentages_mp = [0.4, 0.5, 0.7, 0.8, 0.9] # alpha values
+        else:
+            percentages_mp = [0.1, 0.3, 0.5, 0.7, 0.9]
+        for p in percentages_mp:
             print('\n Iteration ',iter)
             print("method =",m,"p =",p)
             #Set the model, criterion and optimizer
@@ -373,11 +381,18 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             tracker = OfflineEmissionsTracker(country_iso_code=args.country,log_level="ERROR")
             tracker.start()
             start_time = time.time()
+
             #Reduce the dataset
-            X_red, y_red = reduce(X_train, y_train, p, m)
+            reduced_ratio = None
+            if m == 'FCNN':
+                X_red, y_red, reduced_ratio = reduce_fcnn(X_train, y_train, p)
+            else:
+                X_red, y_red = reduce(X_train, y_train, p, m)
             X_red_tensor, y_red_tensor = tensorize(X_red, y_red, args)
+
             #Train the model
             train_model(X_red_tensor,y_red_tensor,model,criterion,optimizer,args)
+
             #Stop the timer and the OfflineEmissionsTracker
             end_time = time.time()
             emission: float = tracker.stop()
@@ -385,6 +400,7 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             #Test the model performance
             predicted = predict(X_test_tensor, model, args)
             cl_rep = classification_report(y_test_tensor.to('cpu'), predicted.to('cpu'), output_dict=True, zero_division = np.nan)
+            
             #Save the results
             stats[iter][m][p]['time']=total_time
             stats[iter][m][p]['carbon']=emission
@@ -399,6 +415,7 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             stats[iter][m][p]['pre_avg']=cl_rep['macro avg']['precision']
             stats[iter][m][p]['rec_avg']=cl_rep['macro avg']['recall']
             stats[iter][m][p]['f1_avg']=cl_rep['macro avg']['f1-score']
+            stats[iter][m][p]['reduced_ratio']=reduced_ratio
             save_stats(stats,args)
 
 # Step 3: Train the model with the datasets reduced with FES

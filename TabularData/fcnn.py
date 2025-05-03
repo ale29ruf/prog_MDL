@@ -140,7 +140,8 @@ class FCNN:
                 print(f"Class {unique_labels[c]}: {100*class_accuracy[c]:.2f}%")
 
 
-        print(f"Reduced ratio: {100*(n-len(subset))/n:.2f}%")
+        reduced_ratio = 100*(n-len(subset))/n
+        print(f"Reduced ratio: {reduced_ratio:.2f}%")
         
         # Extract final subset
         set_data = train[subset]
@@ -148,7 +149,7 @@ class FCNN:
 
         self.subset = set_data
         self.subset_labels = set_label
-        return set_data, set_label
+        return set_data, set_label, reduced_ratio
     
 
 """
