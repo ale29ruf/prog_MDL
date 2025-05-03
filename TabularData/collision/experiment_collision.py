@@ -117,7 +117,7 @@ parser.add_argument(
     default='stats.pkl',
     help='Name of the .pkl file where the statistics dictionary should be saved.')
 parser.add_argument(
-    '--filename',
+    '--filename_fcnn',
     type=str,
     default='stats_fcnn.pkl',
     help='Name of the .pkl file where the statistics dictionary of fcnn should be saved.')
