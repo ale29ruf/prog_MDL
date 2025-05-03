@@ -122,7 +122,7 @@ class FCNN:
             
             # Check if any class has error rate greater than (1-alpha)
             max_error_rate = np.max(class_error_rates)
-            if max_error_rate <= (1-alpha):
+            if max_error_rate <= alpha:
                 break
 
 
