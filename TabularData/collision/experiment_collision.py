@@ -128,7 +128,8 @@ args = parser.parse_args([
     '--test_size','0.25',
     '--device', 'cuda',
     '--country', 'ITA',
-    '--filename', 'collision_stats.pkl'
+    '--filename', 'collision_stats.pkl',
+    '--filename_fcnn', 'collision_stats_fcnn.pkl'
 ])
 
 ###################################
@@ -186,6 +187,12 @@ percentages = [0.1,
                0.7,
                0.9
                ]
+alpha_values = [0.1,
+                0.2,
+                0.25,
+                0.3,
+                0.4,
+                ]
 metrics = ['time',
            'carbon',
            'epsilon',
@@ -199,7 +206,6 @@ metrics = ['time',
            'f1_0',
            'f1_1',
            'f1_avg',
-           'reduced_ratio'
           ]
 
 stats = {}
@@ -211,6 +217,12 @@ for iter in range(args.n_iter):
             stats[iter][method_key][percentage_key] = {}
             for metric_key in metrics:
                 stats[iter][method_key][percentage_key][metric_key] = None
+
+stats_fcnn = {}
+for iter in range(args.n_iter):
+    stats_fcnn[iter] = {}
+    for alpha_key in alpha_values:
+        stats_fcnn[iter][alpha_key] = None
 
 ###################################
 # 5.
@@ -231,6 +243,10 @@ def tensorize(X,y,args):
 def save_stats(stats,args):
     with open(args.filename, "wb") as f:
         pickle.dump(stats, f)
+
+def save_stats_fcnn(stats_fcnn,args):
+    with open(args.filename_fcnn, "wb") as f:
+        pickle.dump(stats_fcnn, f)
 
 def train_step(train_loader, model, args, criterion, optimizer):
     model = model.to(args.device)
@@ -314,9 +330,9 @@ def reduce(X,y,perc,method):
          X_red, y_red = nrmd_selection(X,y,perc,'SVD_python')
     return X_red, y_red
 
-def reduce_fcnn(X,y,perc):
+def reduce_fcnn(X,y,alpha):
     fcnn = FCNN()
-    X_red, y_red, reduced_ratio = fcnn.fit(X, y, alpha=perc)
+    X_red, y_red, reduced_ratio = fcnn.fit(X, y, alpha=alpha)
     return X_red, y_red, reduced_ratio
 
 ###################################
@@ -368,7 +384,7 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
     n_f = X_train.shape[1]
     n_c = len(np.unique(y_train))
     for m in all_methods:
-        for p in percentages:
+        for idx, p in enumerate(percentages):
             print('\n Iteration ',iter)
             print("method =",m,"p =",p)
             #Set the model, criterion and optimizer
@@ -381,7 +397,7 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             #Reduce the dataset
             reduced_ratio = None
             if m == 'FCNN':
-                X_red, y_red, reduced_ratio = reduce_fcnn(X_train, y_train, p)
+                X_red, y_red, reduced_ratio = reduce_fcnn(X_train, y_train, alpha_values[idx])
             else:
                 X_red, y_red = reduce(X_train, y_train, p, m)
             X_red_tensor, y_red_tensor = tensorize(X_red, y_red, args)
@@ -411,7 +427,11 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             stats[iter][m][p]['pre_avg']=cl_rep['macro avg']['precision']
             stats[iter][m][p]['rec_avg']=cl_rep['macro avg']['recall']
             stats[iter][m][p]['f1_avg']=cl_rep['macro avg']['f1-score']
-            stats[iter][m][p]['reduced_ratio']=reduced_ratio
+
+            if m == 'FCNN':
+                stats_fcnn[iter][alpha_values[idx]] = reduced_ratio
+                save_stats_fcnn(stats_fcnn,args)
+                
             save_stats(stats,args)
 
 # Step 3: Train the model with the datasets reduced with FES
