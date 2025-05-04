@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from fcnn import FCNN
+from TabularData.drybean.fcnn import FCNN
 
 # Load the dataset
 df = pd.read_excel('TabularData/collision/collision.xlsx') # /kaggle/input/collisionfcnn/collision.xlsx

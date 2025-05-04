@@ -211,10 +211,10 @@ percentages = [0.1,
                0.9
                ]
 alpha_values = [0.1,
+                0.15,
                 0.2,
                 0.25,
                 0.3,
-                0.4,
                 ]
 metrics = ['time',
            'carbon',
