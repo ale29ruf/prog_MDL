@@ -195,26 +195,26 @@ class NeuralNetwork(nn.Module):
 # Create the statistics dictionary
 ###################################
 
-all_methods = ['FCNN',
-               'SRS', 
-               'PRD', 
-               'CLC', 
-               'MMS', 
-               'DES' , 
-               'NRMD',
-               'PHL'
-              ]
+all_methods = ['FCNN',]
+               #'SRS', 
+               #'PRD', 
+               #'CLC', 
+               #'MMS', 
+               #'DES' , 
+               #'NRMD',
+               #'PHL'
+              
 percentages = [0.1,
                0.3,
                0.5,
                0.7,
                0.9
                ]
-alpha_values = [0.1,
-                0.15,
-                0.2,
-                0.25,
-                0.3,
+alpha_values = [0.01,
+                0.03,
+                0.05,
+                0.07,
+                0.09,
                 ]
 metrics = ['time',
            'carbon',
