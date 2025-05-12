@@ -336,7 +336,7 @@ def reduce_fcnn(X,y,idx):
 
     # Excecution with live streaming 
     subprocess.run(
-        ["./fcnn", filename, filename_reduct, "-method", "2", "-knn", knn[idx]],
+        ["./kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn", filename, filename_reduct, "-method", "2", "-knn", knn[idx]],
         check=True
     )
 
