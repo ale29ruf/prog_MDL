@@ -376,7 +376,7 @@ def reduce_fcnn(X,y,idx):
     ds_manager.scrivi_dataset_binario(filename, dataset)
     print(f"Dataset convertito e salvato in formato binario.")
     print(f"Dimensioni originali: {dataset.shape}") 
-    filename_reduct = "drybean.ds3"
+    filename_reduct = "condensed.ds3"
 
     # Excecution with live streaming 
     subprocess.run(
