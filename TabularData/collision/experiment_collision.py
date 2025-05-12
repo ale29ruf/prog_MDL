@@ -417,7 +417,10 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
         for idx, p in enumerate(percentages):
             print('\n Iteration ',iter)
             if m == 'FCNN':
-                print("method =",m,"knn =",knn[idx])
+                print("method =",m,"knn =",knn[idx],"classaccuracy =",class_accuracy[idx])
+            else:
+                print("method =",m,"p =",p)
+                
             #Set the model, criterion and optimizer
             model, criterion, optimizer = create_new_model(n_f,args)
             #Start the timer and the OfflineEmissionsTracker

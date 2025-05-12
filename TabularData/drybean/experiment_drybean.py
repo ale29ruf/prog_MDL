@@ -2,6 +2,8 @@
 # DATA REDUCTION EXPERIMENTS
 # Covertype Dataset
 ###################################
+import os
+import subprocess
 import time
 import pickle
 import numpy as np
@@ -15,7 +17,6 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from fcnn import FCNN
 from codecarbon import OfflineEmissionsTracker
 from data_reduction.statistic import srs_selection, prd_selection
 from data_reduction.geometric import clc_selection, mms_selection, des_selection
@@ -23,6 +24,8 @@ from data_reduction.ranking import phl_selection, nrmd_selection
 from data_reduction.wrapper import fes_selection
 from data_reduction.representativeness import find_epsilon
 from ucimlrepo import fetch_ucirepo
+
+import ds_manager
 ###################################
 
 ###################################
@@ -131,11 +134,6 @@ parser.add_argument(
     type=str,
     default='stats.pkl',
     help='Name of the .pkl file where the statistics dictionary should be saved.')
-parser.add_argument(
-    '--filename_fcnn',
-    type=str,
-    default='stats_fcnn.pkl',
-    help='Name of the .pkl file where the statistics dictionary of fcnn should be saved.')
 
 args = parser.parse_args([
     '--learning_rate','0.001',
@@ -149,7 +147,6 @@ args = parser.parse_args([
     '--device', 'cuda',
     '--country', 'ITA',
     '--filename', 'drybean_stats.pkl',
-    '--filename_fcnn', 'drybean_stats_fcnn.pkl'
 ])
 
 ###################################
@@ -210,12 +207,10 @@ percentages = [0.1,
                0.7,
                0.9
                ]
-alpha_values = [0.01,
-                0.03,
-                0.05,
-                0.07,
-                0.09,
-                ]
+
+knn = [ "1", "2", "3", "4", "5"]
+class_accuracy = ["1.0", "1.0", "1.0", "1.0", "1.0"]
+
 metrics = ['time',
            'carbon',
            'epsilon',
@@ -256,11 +251,6 @@ for iter in range(args.n_iter):
             for metric_key in metrics:
                 stats[iter][method_key][percentage_key][metric_key] = None
 
-stats_fcnn = {}
-for iter in range(args.n_iter):
-    stats_fcnn[iter] = {}
-    for alpha_key in alpha_values:
-        stats_fcnn[iter][alpha_key] = None
 
 ###################################
 # 5.
@@ -377,10 +367,41 @@ def reduce(X,y,perc,method):
         X_red, y_red = phl_selection(X, y, 0.05, perc, 'restrictedDim', 2, 'representative')
     return X_red, y_red
 
-def reduce_fcnn(X,y,alpha):
-    fcnn = FCNN()
-    X_red, y_red, reduced_ratio = fcnn.fit(X, y, alpha=alpha)
-    return X_red, y_red, reduced_ratio
+def reduce_fcnn(X,y,idx):
+    y = y.reshape(-1, 1)
+    dataset = np.hstack((X, y))
+
+    # Convert original format to binary
+    filename = f"drybean_{idx}.ds3"
+    ds_manager.scrivi_dataset_binario(filename, dataset)
+    print(f"Dataset convertito e salvato in formato binario.")
+    print(f"Dimensioni originali: {dataset.shape}") 
+    filename_reduct = "drybean.ds3"
+
+    # Excecution with live streaming 
+    subprocess.run(
+        ["/kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn", filename, filename_reduct, "-method", "2", "-knn", knn[idx], "-classaccuracy", class_accuracy[idx]],
+        check=True
+    )
+
+    # Convert condensed dataset to original format
+    filename_reduct_original = 'condensed_original.xlsx'
+    dataset = ds_manager.leggi_dataset_binario('condensed.ds3')
+    features = dataset[:, :-1]  
+    target = dataset[:, -1] 
+
+    df = pd.DataFrame(features)
+    df['Class'] = target
+    df.to_excel(filename_reduct_original, index=False)
+    print("Dataset convertito e salvato in formato Excel.")
+    print(f"Dimensioni features: {features.shape}")
+    print(f"Numero di classi: {len(np.unique(target))}")
+    print("\nClassi presenti:")
+    for label in np.unique(target):
+        count = np.sum(target == label)
+        print(f"Classe {label}: {count} esempi") 
+    
+    return features, target
 
 ###################################
 # 7.
@@ -443,12 +464,20 @@ def exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
 
 # Step 2: Train the model with the reduced datasets (p in percentages)
 def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
+    
+    # Rendo eseguibile la tecnica fcnn
+    path = "/kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn"
+    os.chmod(path, 0o755)
+
     n_f = X_train.shape[1]
-    n_c = len(np.unique(y_train))
     for m in all_methods:
         for idx, p in enumerate(percentages):
             print('\n Iteration ',iter)
-            print("method =",m,"p =",p)
+            if m == 'FCNN':
+                print("method =",m,"knn =",knn[idx], "classaccuracy =",class_accuracy[idx])
+            else:
+                print("method =",m,"p =",p)
+
             #Set the model, criterion and optimizer
             model, criterion, optimizer = create_new_model(n_f,args)
             #Start the timer and the OfflineEmissionsTracker
@@ -457,9 +486,8 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             start_time = time.time()
 
             #Reduce the dataset
-            reduced_ratio = None
             if m == 'FCNN':
-                X_red, y_red, reduced_ratio = reduce_fcnn(X_train, y_train, alpha_values[idx])
+                X_red, y_red = reduce_fcnn(X_train, y_train, idx)
             else:
                 X_red, y_red = reduce(X_train, y_train, p, m)
             X_red_tensor, y_red_tensor = tensorize(X_red, y_red, args)
@@ -504,10 +532,6 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             stats[iter][m][p]['pre_avg']=cl_rep['macro avg']['precision']
             stats[iter][m][p]['rec_avg']=cl_rep['macro avg']['recall']
             stats[iter][m][p]['f1_avg']=cl_rep['macro avg']['f1-score']
-
-            if m == 'FCNN':
-                stats_fcnn[iter][alpha_values[idx]] = reduced_ratio
-                save_stats_fcnn(stats_fcnn,args)
 
             save_stats(stats,args)
 
@@ -573,6 +597,6 @@ def exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
 for iter in range(args.n_iter):
     X_train, X_test, y_train, y_test = train_test_split(X_shuffled, y_shuffled, test_size=args.test_size)
     X_test_tensor, y_test_tensor = tensorize(X_test, y_test, args)
-    exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
+    #exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
     exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
-    exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter) 
+    #exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter) 
