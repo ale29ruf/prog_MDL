@@ -324,6 +324,8 @@ def reduce(X,y,perc,method):
     return X_red, y_red
 
 def reduce_fcnn(X,y,idx):
+
+    y = y.reshape(-1, 1)
     dataset = np.hstack((X, y))
 
     # Convert original format to binary
@@ -412,7 +414,8 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
     for m in all_methods:
         for idx, p in enumerate(percentages):
             print('\n Iteration ',iter)
-            print("method =",m,"p =",p)
+            if m == 'FCNN':
+                print("method =",m,"knn =",knn[idx])
             #Set the model, criterion and optimizer
             model, criterion, optimizer = create_new_model(n_f,args)
             #Start the timer and the OfflineEmissionsTracker
