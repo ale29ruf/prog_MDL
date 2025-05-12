@@ -190,6 +190,7 @@ percentages = [0.1,
                ]
 
 knn = [ "1", "2", "3", "4", "5"]
+accuracy = ["1.0", "0.99", "0.99", "0.99", "0.99"]
 
 metrics = ['time',
            'carbon',
@@ -346,7 +347,7 @@ def reduce_fcnn(X,y,idx):
     dataset = ds_manager.leggi_dataset_binario('condensed.ds3')
     features = dataset[:, :-1]  
     target = dataset[:, -1] 
-    
+
     df = pd.DataFrame(features)
     df['Class'] = target
     df.to_excel(filename_reduct_original, index=False)
