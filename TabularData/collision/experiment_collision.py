@@ -175,13 +175,13 @@ class NeuralNetwork(nn.Module):
 # Create the statistics dictionary
 ###################################
 
-all_methods = ['FCNN',
-               'SRS',
-               'CLC',
-               'MMS',
-               'DES',
-               'NRMD'               
-              ]
+all_methods = ['FCNN',]
+               #'SRS',
+               #'CLC',
+               #'MMS',
+               #'DES',
+               #'NRMD'               
+              
 percentages = [0.1,
                0.3,
                0.5,
@@ -190,7 +190,7 @@ percentages = [0.1,
                ]
 
 knn = [ "1", "2", "3", "4", "5"]
-accuracy = ["1.0", "0.99", "0.99", "0.99", "0.99"]
+class_accuracy = ["1.0", "0.99", "0.99", "0.99", "0.99"]
 
 metrics = ['time',
            'carbon',
@@ -338,7 +338,7 @@ def reduce_fcnn(X,y,idx):
 
     # Excecution with live streaming 
     subprocess.run(
-        ["/kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn", filename, filename_reduct, "-method", "2", "-knn", knn[idx]],
+        ["/kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn", filename, filename_reduct, "-method", "2", "-knn", knn[idx], "-classaccuracy", class_accuracy[idx]],
         check=True
     )
 
