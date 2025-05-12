@@ -507,6 +507,6 @@ def exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
 for iter in range(args.n_iter):
     X_train, X_test, y_train, y_test = train_test_split(X_shuffled, y_shuffled, test_size=args.test_size)
     X_test_tensor, y_test_tensor = tensorize(X_test, y_test, args)
-    exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
+    #exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
     exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
-    exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
+    #exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
