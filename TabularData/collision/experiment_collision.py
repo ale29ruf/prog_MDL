@@ -17,7 +17,6 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 import ds_manager
-from fcnn import FCNN
 from codecarbon import OfflineEmissionsTracker
 from data_reduction.statistic import srs_selection, prd_selection
 from data_reduction.geometric import clc_selection, mms_selection, des_selection
