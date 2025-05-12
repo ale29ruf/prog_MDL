@@ -2,6 +2,8 @@
 # DATA REDUCTION EXPERIMENTS
 # Collision Dataset
 ###################################
+import os
+import subprocess
 import time
 import pickle
 import numpy as np
@@ -14,6 +16,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+import ds_manager
 from fcnn import FCNN
 from codecarbon import OfflineEmissionsTracker
 from data_reduction.statistic import srs_selection, prd_selection
@@ -116,11 +119,6 @@ parser.add_argument(
     type=str,
     default='stats.pkl',
     help='Name of the .pkl file where the statistics dictionary should be saved.')
-parser.add_argument(
-    '--filename_fcnn',
-    type=str,
-    default='stats_fcnn.pkl',
-    help='Name of the .pkl file where the statistics dictionary of fcnn should be saved.')
 
 args = parser.parse_args([
     '--learning_rate','0.001',
@@ -133,8 +131,7 @@ args = parser.parse_args([
     '--test_size','0.25',
     '--device', 'cuda',
     '--country', 'ITA',
-    '--filename', 'collision_stats.pkl',
-    '--filename_fcnn', 'collision_stats_fcnn.pkl'
+    '--filename', 'collision_stats.pkl'
 ])
 
 ###################################
@@ -179,25 +176,22 @@ class NeuralNetwork(nn.Module):
 # Create the statistics dictionary
 ###################################
 
-all_methods = ['FCNN',]
-               #'SRS',
-               #'CLC',
-               #'MMS',
-               #'DES',
-               #'NRMD'               
-              
+all_methods = ['FCNN',
+               'SRS',
+               'CLC',
+               'MMS',
+               'DES',
+               'NRMD'               
+              ]
 percentages = [0.1,
                0.3,
                0.5,
                0.7,
                0.9
                ]
-alpha_values = [0.03,
-                0.06,
-                0.09,
-                0.12,
-                0.15,
-                ]
+
+knn = [ "1", "2", "3", "4", "5"]
+
 metrics = ['time',
            'carbon',
            'epsilon',
@@ -223,11 +217,6 @@ for iter in range(args.n_iter):
             for metric_key in metrics:
                 stats[iter][method_key][percentage_key][metric_key] = None
 
-stats_fcnn = {}
-for iter in range(args.n_iter):
-    stats_fcnn[iter] = {}
-    for alpha_key in alpha_values:
-        stats_fcnn[iter][alpha_key] = None
 
 ###################################
 # 5.
@@ -335,10 +324,39 @@ def reduce(X,y,perc,method):
          X_red, y_red = nrmd_selection(X,y,perc,'SVD_python')
     return X_red, y_red
 
-def reduce_fcnn(X,y,alpha):
-    fcnn = FCNN()
-    X_red, y_red, reduced_ratio = fcnn.fit(X, y, alpha=alpha)
-    return X_red, y_red, reduced_ratio
+def reduce_fcnn(X,y,idx):
+    dataset = np.hstack((X, y))
+
+    # Convert original format to binary
+    filename = f"collision_{idx}.ds3"
+    ds_manager.scrivi_dataset_binario(filename, dataset)
+    print(f"Dataset convertito e salvato in formato binario.")
+    print(f"Dimensioni originali: {dataset.shape}") 
+    filename_reduct = "condensed.ds3"
+
+    # Excecution with live streaming 
+    subprocess.run(
+        ["./fcnn", filename, filename_reduct, "-method", "2", "-knn", knn[idx]],
+        check=True
+    )
+
+    # Convert condensed dataset to original format
+    filename_reduct_original = 'condensed_original.xlsx'
+    dataset = ds_manager.leggi_dataset_binario('condensed.ds3')
+    features = dataset[:, :-1]  
+    target = dataset[:, -1] 
+    df = pd.DataFrame(features)
+    df['Class'] = target
+    df.to_excel(filename_reduct_original, index=False)
+    print("Dataset convertito e salvato in formato Excel.")
+    print(f"Dimensioni features: {features.shape}")
+    print(f"Numero di classi: {len(np.unique(target))}")
+    print("\nClassi presenti:")
+    for label in np.unique(target):
+        count = np.sum(target == label)
+        print(f"Classe {label}: {count} esempi") 
+    
+    return features, target
 
 ###################################
 # 7.
@@ -386,8 +404,12 @@ def exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
 
 # Step 2: Train the model with the reduced datasets (p in percentages)
 def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
+
+    # Rendo eseguibile la tecnica fcnn
+    path = "/kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn"
+    os.chmod(path, 0o755)
+
     n_f = X_train.shape[1]
-    n_c = len(np.unique(y_train))
     for m in all_methods:
         for idx, p in enumerate(percentages):
             print('\n Iteration ',iter)
@@ -400,9 +422,8 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             start_time = time.time()
 
             #Reduce the dataset
-            reduced_ratio = None
             if m == 'FCNN':
-                X_red, y_red, reduced_ratio = reduce_fcnn(X_train, y_train, alpha_values[idx])
+                X_red, y_red = reduce_fcnn(X_train, y_train, idx)
             else:
                 X_red, y_red = reduce(X_train, y_train, p, m)
             X_red_tensor, y_red_tensor = tensorize(X_red, y_red, args)
@@ -432,10 +453,6 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             stats[iter][m][p]['pre_avg']=cl_rep['macro avg']['precision']
             stats[iter][m][p]['rec_avg']=cl_rep['macro avg']['recall']
             stats[iter][m][p]['f1_avg']=cl_rep['macro avg']['f1-score']
-
-            if m == 'FCNN':
-                stats_fcnn[iter][alpha_values[idx]] = reduced_ratio
-                save_stats_fcnn(stats_fcnn,args)
 
             save_stats(stats,args)
 
