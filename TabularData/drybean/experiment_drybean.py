@@ -209,7 +209,7 @@ percentages = [0.1,
                ]
 
 knn = [ "1", "2", "3", "4", "5"]
-class_accuracy = ["1.0", "1.0", "1.0", "1.0", "1.0"]
+class_accuracy = ["1.0", "0.99", "0.99", "0.99", "0.99"]
 
 metrics = ['time',
            'carbon',
