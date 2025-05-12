@@ -346,6 +346,7 @@ def reduce_fcnn(X,y,idx):
     dataset = ds_manager.leggi_dataset_binario('condensed.ds3')
     features = dataset[:, :-1]  
     target = dataset[:, -1] 
+    
     df = pd.DataFrame(features)
     df['Class'] = target
     df.to_excel(filename_reduct_original, index=False)
