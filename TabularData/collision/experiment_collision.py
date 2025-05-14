@@ -175,12 +175,19 @@ class NeuralNetwork(nn.Module):
 # Create the statistics dictionary
 ###################################
 
-all_methods = ['FCNN',]
-               #'SRS',
-               #'CLC',
-               #'MMS',
-               #'DES',
-               #'NRMD'               
+"""all_methods = ['FCNN',
+               'SRS',
+               'CLC',
+               'MMS',
+               'DES',
+               'NRMD']"""   
+
+all_methods = ['FCNN',
+               'FCNN1',
+               'FCNN2',
+               'FCNN3',
+               'FCNN4',
+               'FCNN5']              
               
 percentages = [0.1,
                0.3,
@@ -190,7 +197,12 @@ percentages = [0.1,
                ]
 
 knn = [ "1", "2", "3", "4", "5"]
-class_accuracy = ["0.95", "0.94", "0.94", "0.94", "0.94"]
+class_accuracy = [["1.0", "0.99", "0.99", "0.99", "0.99"],
+                  ["0.99", "0.98", "0.98", "0.98", "0.98"], 
+                  ["0.98", "0.97", "0.97", "0.97", "0.97"], 
+                  ["0.97", "0.96", "0.96", "0.96", "0.96"], 
+                  ["0.96", "0.95", "0.95", "0.95", "0.95"], 
+                  ["0.95", "0.94", "0.94", "0.94", "0.94"]]
 
 metrics = ['time',
            'carbon',
@@ -324,13 +336,13 @@ def reduce(X,y,perc,method):
          X_red, y_red = nrmd_selection(X,y,perc,'SVD_python')
     return X_red, y_red
 
-def reduce_fcnn(X,y,idx):
+def reduce_fcnn(X,y,knn,classaccuracy):
 
     y = y.reshape(-1, 1)
     dataset = np.hstack((X, y))
 
     # Convert original format to binary
-    filename = f"collision_{idx}.ds3"
+    filename = f"collision.ds3"
     ds_manager.scrivi_dataset_binario(filename, dataset)
     print(f"Dataset convertito e salvato in formato binario.")
     print(f"Dimensioni originali: {dataset.shape}") 
@@ -338,7 +350,7 @@ def reduce_fcnn(X,y,idx):
 
     # Excecution with live streaming 
     subprocess.run(
-        ["/kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn", filename, filename_reduct, "-method", "2", "-knn", knn[idx], "-classaccuracy", class_accuracy[idx]],
+        ["/kaggle/working/prog_MDL/FCNN_Fabrizio/fcnn", filename, filename_reduct, "-method", "2", "-knn", knn, "-classaccuracy", classaccuracy],
         check=True
     )
 
@@ -413,13 +425,13 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
     os.chmod(path, 0o755)
 
     n_f = X_train.shape[1]
-    for m in all_methods:
+    for idxm, m in enumerate(all_methods):
         for idx, p in enumerate(percentages):
             print('\n Iteration ',iter)
-            if m == 'FCNN':
-                print("method =",m,"knn =",knn[idx],"classaccuracy =",class_accuracy[idx])
-            else:
-                print("method =",m,"p =",p)
+            #if m == 'FCNN':
+            print("method =",m,"knn =",knn[idx],"classaccuracy =",class_accuracy[idxm][idx])
+            #else:
+            #    print("method =",m,"p =",p)
                 
             #Set the model, criterion and optimizer
             model, criterion, optimizer = create_new_model(n_f,args)
@@ -429,10 +441,10 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             start_time = time.time()
 
             #Reduce the dataset
-            if m == 'FCNN':
-                X_red, y_red = reduce_fcnn(X_train, y_train, idx)
-            else:
-                X_red, y_red = reduce(X_train, y_train, p, m)
+            #if m == 'FCNN':
+            X_red, y_red = reduce_fcnn(X_train, y_train, knn[idx], class_accuracy[idxm][idx])
+            #else:
+            #    X_red, y_red = reduce(X_train, y_train, p, m)
             X_red_tensor, y_red_tensor = tensorize(X_red, y_red, args)
 
             #Train the model
