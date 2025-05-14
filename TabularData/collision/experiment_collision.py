@@ -175,19 +175,17 @@ class NeuralNetwork(nn.Module):
 # Create the statistics dictionary
 ###################################
 
-"""all_methods = ['FCNN',
-               'SRS',
-               'CLC',
-               'MMS',
-               'DES',
-               'NRMD']"""   
-
 all_methods = ['FCNN',
                'FCNN1',
                'FCNN2',
                'FCNN3',
                'FCNN4',
-               'FCNN5']              
+               'FCNN5',
+               'SRS',
+               'CLC',
+               'MMS',
+               'DES',
+               'NRMD']              
               
 percentages = [0.1,
                0.3,
@@ -427,11 +425,11 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
     n_f = X_train.shape[1]
     for idxm, m in enumerate(all_methods):
         for idx, p in enumerate(percentages):
-            print('\n Iteration ',iter)
-            #if m == 'FCNN':
-            print("method =",m,"knn =",knn[idx],"classaccuracy =",class_accuracy[idxm][idx])
-            #else:
-            #    print("method =",m,"p =",p)
+            #print('\n Iteration ',iter)
+            if m.startswith("FCNN"):
+                print("method =",m,"knn =",knn[idx],"classaccuracy =",class_accuracy[idxm][idx])
+            else:
+                print("method =",m,"p =",p)
                 
             #Set the model, criterion and optimizer
             model, criterion, optimizer = create_new_model(n_f,args)
@@ -441,10 +439,10 @@ def exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
             start_time = time.time()
 
             #Reduce the dataset
-            #if m == 'FCNN':
-            X_red, y_red = reduce_fcnn(X_train, y_train, knn[idx], class_accuracy[idxm][idx])
-            #else:
-            #    X_red, y_red = reduce(X_train, y_train, p, m)
+            if m.startswith("FCNN"):
+                X_red, y_red = reduce_fcnn(X_train, y_train, knn[idx], class_accuracy[idxm][idx])
+            else:
+                X_red, y_red = reduce(X_train, y_train, p, m)
             X_red_tensor, y_red_tensor = tensorize(X_red, y_red, args)
 
             #Train the model
@@ -522,6 +520,6 @@ def exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter):
 for iter in range(args.n_iter):
     X_train, X_test, y_train, y_test = train_test_split(X_shuffled, y_shuffled, test_size=args.test_size)
     X_test_tensor, y_test_tensor = tensorize(X_test, y_test, args)
-    #exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
+    exp_step_1(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
     exp_step_mp(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
-    #exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
+    exp_step_fes(X_train,y_train,X_test_tensor,y_test_tensor,args,stats,iter)
